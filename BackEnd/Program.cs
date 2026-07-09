@@ -14,7 +14,7 @@ var app = builder.Build();
 
 app.MapGet("/", () =>
 {
-    return Results.Text("Api is working ");
+    return Results.Text("Hi Kowther...!!!");
 });
 
 
