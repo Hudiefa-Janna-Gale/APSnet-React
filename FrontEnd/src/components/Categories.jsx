@@ -7,7 +7,7 @@ function Categories() {
       image:
         "https://i.pinimg.com/736x/a5/50/3c/a5503cf5294eb4cc82805384fdfd4676.jpg",
       title: "Fashion",
-      color: "bg-purple-100",
+      color: "bg-blue-100",
     },
     {
       id: 2,
@@ -21,7 +21,7 @@ function Categories() {
       image:
         "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=400",
       title: "Watches",
-      color: "bg-orange-100",
+      color: "bg-blue-100",
     },
     {
       id: 4,
@@ -40,7 +40,7 @@ function Categories() {
           Shop by Category
         </h1>
 
-        <div className="w-24 h-1 bg-purple-600 mx-auto mt-5 rounded-full"></div>
+        <div className="w-24 h-1 bg-blue-600 mx-auto mt-5 rounded-full"></div>
 
         <p className="text-center text-gray-500 text-xl mt-6 mb-16">
           Explore our wide range of products across various categories

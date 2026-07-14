@@ -13,6 +13,7 @@ function Cart({
   increaseQuantity,
   decreaseQuantity,
   removeFromCart,
+  checkout,
 }) {
 
   // Calculate subtotal - hadda wuxuu si toos ah ula socdaa cartItems-ka waalidka
@@ -126,7 +127,7 @@ function Cart({
                     </div>
 
                     {/* Total */}
-                    <div className="text-center text-2xl font-bold text-purple-600">
+                    <div className="text-center text-2xl font-bold text-blue-600">
                       ${totalPrice.toFixed(2)}
                     </div>
 
@@ -150,7 +151,7 @@ function Cart({
           <div className="bg-gray-50 rounded-3xl p-6 h-fit shadow-lg border border-gray-100">
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <span>Order Summary</span>
-              <span className="text-sm bg-purple-100 text-purple-600 px-3 py-1 rounded-full">
+              <span className="text-sm bg-blue-100 text-blue-600 px-3 py-1 rounded-full">
                 {cartItems.length} items
               </span>
             </h2>
@@ -163,9 +164,9 @@ function Cart({
               <input
                 type="text"
                 placeholder="Coupon Code"
-                className="border-t border-b flex-1 px-4 py-3 outline-none focus:border-purple-500"
+                className="border-t border-b flex-1 px-4 py-3 outline-none focus:border-blue-500"
               />
-              <button className="bg-purple-600 text-white px-5 rounded-r-xl hover:bg-purple-700 transition-colors">
+              <button className="bg-blue-600 text-white px-5 rounded-r-xl hover:bg-blue-700 transition-colors">
                 Apply
               </button>
             </div>
@@ -191,16 +192,17 @@ function Cart({
 
               <div className="flex justify-between items-center text-2xl font-bold">
                 <span>Total</span>
-                <span className="text-purple-600">${total.toFixed(2)}</span>
+                <span className="text-blue-600">${total.toFixed(2)}</span>
               </div>
             </div>
 
             {/* Checkout */}
-            <button 
+            <button
+              onClick={() => checkout && checkout()}
               className={`mt-8 w-full text-white py-4 rounded-xl text-lg font-semibold transition-all duration-300 ${
-                cartItems.length === 0 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg transform hover:scale-[1.02]'
+                cartItems.length === 0
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-[1.02]'
               }`}
               disabled={cartItems.length === 0}
             >

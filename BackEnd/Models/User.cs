@@ -1,3 +1,4 @@
+// Represents one row of the Users table
 public class User
 {
     public int UserID { get; set; }
@@ -11,8 +12,12 @@ public class User
     public string Role { get; set; } = "Customer";
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+}
 
-    public ICollection<Order> Orders { get; set; } = new List<Order>();
+// Small helper model used only by the Login endpoint
+public class LoginRequest
+{
+    public string Email { get; set; } = string.Empty;
 
-    public ICollection<Cart> CartItems { get; set; } = new List<Cart>();
+    public string Password { get; set; } = string.Empty;
 }

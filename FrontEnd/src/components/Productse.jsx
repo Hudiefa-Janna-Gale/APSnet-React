@@ -21,7 +21,7 @@ function Productse() {
               <tr key={p.id} className="hover:bg-slate-50">
                 <td className="p-4 font-bold text-slate-800">{p.name}</td>
                 <td className="p-4 text-gray-500">{p.category}</td>
-                <td className="p-4 font-semibold text-purple-600">{p.price}</td>
+                <td className="p-4 font-semibold text-blue-600">{p.price}</td>
                 <td className="p-4 text-gray-600">{p.stock}</td>
               </tr>
             ))}

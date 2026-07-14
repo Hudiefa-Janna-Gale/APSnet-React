@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { MapPin, Phone, Mail, Send } from "lucide-react";
+import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaPaperPlane } from "react-icons/fa";
 
 function Contact() {
   return (
@@ -34,7 +34,7 @@ function Contact() {
                   <input
                     type="text"
                     placeholder="Enter your name"
-                    className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -46,7 +46,7 @@ function Contact() {
                   <input
                     type="email"
                     placeholder="Enter your email"
-                    className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -58,12 +58,12 @@ function Contact() {
                   <textarea
                     rows="5"
                     placeholder="Write your message..."
-                    className="w-full border rounded-lg p-3 outline-none resize-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border rounded-lg p-3 outline-none resize-none focus:ring-2 focus:ring-blue-500"
                   ></textarea>
                 </div>
 
-                <button className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg flex items-center gap-2 transition">
-                  <Send size={18} />
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg flex items-center gap-2 transition">
+                  <FaPaperPlane size={18} />
                   Send Message
                 </button>
 
@@ -81,8 +81,8 @@ function Contact() {
               <div className="space-y-8">
 
                 <div className="flex gap-4">
-                  <div className="bg-purple-100 p-3 rounded-full">
-                    <MapPin className="text-purple-600" />
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <FaMapMarkerAlt className="text-blue-600" />
                   </div>
 
                   <div>
@@ -97,8 +97,8 @@ function Contact() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="bg-purple-100 p-3 rounded-full">
-                    <Phone className="text-purple-600" />
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <FaPhone className="text-blue-600" />
                   </div>
 
                   <div>
@@ -113,8 +113,8 @@ function Contact() {
                 </div>
 
                 <div className="flex gap-4">
-                  <div className="bg-purple-100 p-3 rounded-full">
-                    <Mail className="text-purple-600" />
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <FaEnvelope className="text-blue-600" />
                   </div>
 
                   <div>

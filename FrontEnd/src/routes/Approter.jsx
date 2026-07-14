@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
-import { FaThLarge, FaBox, FaShoppingCart, FaUsers, FaStar, FaCog, FaBell } from "react-icons/fa";
+import { FaThLarge, FaStore, FaBox, FaShoppingCart, FaUsers, FaStar, FaCog, FaBell } from "react-icons/fa";
 
 // Boggaga Dukaanka Caadiga ah
 import Home from "../pages/Home";
@@ -18,13 +18,14 @@ import Users from "../pages/Users";
 import Reviews from "../pages/Reviews";
 import Settings from "../pages/Settings";
 
-function Approter({ 
-  cartItems, 
-  cartCount, 
-  addToCart, 
-  increaseQuantity, 
-  decreaseQuantity, 
+function Approter({
+  cartItems,
+  cartCount,
+  addToCart,
+  increaseQuantity,
+  decreaseQuantity,
   removeFromCart,
+  checkout,
   user,
   onLogin,
   onLogout
@@ -43,11 +44,12 @@ function Approter({
         <Route path="/cart" element={
           <>
             <Navbar cartCount={cartCount} user={user} onLogout={onLogout} />
-            <Cart 
-              cartItems={cartItems} 
+            <Cart
+              cartItems={cartItems}
               increaseQuantity={increaseQuantity}
               decreaseQuantity={decreaseQuantity}
               removeFromCart={removeFromCart}
+              checkout={checkout}
             />
           </>
         } />
@@ -81,7 +83,7 @@ function SidebarLayout() {
       {/* SIDEBAR (BIDIX) */}
       <div className="w-64 bg-slate-950 text-slate-300 p-6 flex flex-col gap-8 border-r border-slate-900 shrink-0">
         <div className="text-2xl font-black text-white tracking-wider flex items-center gap-2 px-2">
-          🛍️ ShopHub
+          <FaStore className="text-blue-500" /> ShopHub
         </div>
         <nav className="flex flex-col gap-2 flex-1">
           {menus.map((m, i) => {
@@ -92,7 +94,7 @@ function SidebarLayout() {
                 to={m.path}
                 className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                   isActive 
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/30" 
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30" 
                     : "hover:bg-slate-900 hover:text-white"
                 }`}
               >
@@ -109,12 +111,12 @@ function SidebarLayout() {
           <input 
             type="text" 
             placeholder="Search here..." 
-            className="bg-slate-50 border rounded-xl px-4 py-2 w-80 text-sm outline-none focus:border-purple-400" 
+            className="bg-slate-50 border rounded-xl px-4 py-2 w-80 text-sm outline-none focus:border-blue-400" 
           />
           <div className="flex items-center gap-6">
-            <FaBell className="text-gray-400 text-xl cursor-pointer hover:text-purple-600" />
+            <FaBell className="text-gray-400 text-xl cursor-pointer hover:text-blue-600" />
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold">JD</div>
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">JD</div>
               <div className="text-left text-xs">
                 <p className="font-bold text-slate-800">John Doe</p>
                 <p className="text-gray-400">Admin</p>

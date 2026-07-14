@@ -1,29 +1,16 @@
 import { FaStar, FaHeart, FaShoppingCart } from "react-icons/fa";
 
-function ProductCard({
-  image,
-  title,
-  price,
-  badge,
-  onAddToCart,
-}) {
-  // Product-ka waxaa loo dirayaa Cart-ka
-  const product = {
-    image,
-    title,
-    price,
-    badge,
-  };
-
+// Waxaa loo dhiibaa product dhab ah oo ka yimid API-ga
+function ProductCard({ product, onAddToCart }) {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden group hover:shadow-2xl transition duration-300">
 
       {/* Image */}
       <div className="relative bg-gray-100 p-6 overflow-hidden">
 
-        {/* Badge */}
-        <span className="absolute top-4 left-4 bg-purple-600 text-white text-xs px-3 py-1 rounded-full">
-          {badge}
+        {/* Badge: category-ga alaabta */}
+        <span className="absolute top-4 left-4 bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+          {product.category || "New"}
         </span>
 
         {/* Favorite */}
@@ -33,8 +20,8 @@ function ProductCard({
 
         {/* Product Image */}
         <img
-          src={image}
-          alt={title}
+          src={product.imageURL || "https://via.placeholder.com/300?text=No+Image"}
+          alt={product.name}
           className="w-40 h-40 mx-auto object-contain transition duration-300 group-hover:scale-110"
         />
 
@@ -44,15 +31,15 @@ function ProductCard({
       <div className="p-5">
 
         <h2 className="font-semibold text-lg">
-          {title}
+          {product.name}
         </h2>
 
-        <p className="text-purple-600 font-bold mt-2">
-          {price}
+        <p className="text-blue-600 font-bold mt-2">
+          ${Number(product.price).toFixed(2)}
         </p>
 
         {/* Rating */}
-        <div className="flex items-center gap-1 text-yellow-400 mt-3">
+        <div className="flex items-center gap-1 text-blue-500 mt-3">
           <FaStar />
           <FaStar />
           <FaStar />
@@ -63,7 +50,7 @@ function ProductCard({
         {/* Add To Cart */}
         <button
           onClick={() => onAddToCart(product)}
-          className="mt-5 w-full bg-purple-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-purple-700 transition duration-300"
+          className="mt-5 w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition duration-300"
         >
           <FaShoppingCart />
           Add to Cart

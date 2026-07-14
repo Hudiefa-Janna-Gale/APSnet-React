@@ -44,7 +44,7 @@ function Features() {
               key={feature.id}
               className="flex items-center gap-4"
             >
-              <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl">
+              <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
                 {feature.icon}
               </div>
 

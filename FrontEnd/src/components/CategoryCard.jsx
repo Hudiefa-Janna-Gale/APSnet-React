@@ -16,7 +16,7 @@ function CategoryCard({ image, title, color }) {
         {title}
       </h2>
 
-      <button className="mt-6 text-purple-600 font-semibold text-xl hover:underline">
+      <button className="mt-6 text-blue-600 font-semibold text-xl hover:underline">
         Shop Now →
       </button>
 

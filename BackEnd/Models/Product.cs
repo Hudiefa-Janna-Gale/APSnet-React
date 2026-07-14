@@ -1,3 +1,4 @@
+// Represents one row of the Products table
 public class Product
 {
     public int ProductID { get; set; }
@@ -15,8 +16,4 @@ public class Product
     public string? ImageURL { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
-
-    public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
-
-    public ICollection<Cart> CartItems { get; set; } = new List<Cart>();
 }

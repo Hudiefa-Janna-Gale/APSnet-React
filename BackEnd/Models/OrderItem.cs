@@ -1,3 +1,5 @@
+// Represents one row of the OrderItems table.
+// ProductName comes from a JOIN with the Products table.
 public class OrderItem
 {
     public int OrderItemID { get; set; }
@@ -10,7 +12,6 @@ public class OrderItem
 
     public decimal UnitPrice { get; set; }
 
-    public Order? Order { get; set; }
-
-    public Product? Product { get; set; }
+    // Extra info from the Products table (filled by a JOIN)
+    public string? ProductName { get; set; }
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Target, Eye } from 'lucide-react';
+import { FaBullseye, FaEye } from 'react-icons/fa';
 import Navbar from "../components/Navbar";
 import Approter from "../routes/Approter";
 const About = () => {
@@ -28,8 +28,8 @@ const About = () => {
           <div className="space-y-6 pt-4">
             {/* Our Mission */}
             <div className="flex items-start gap-4">
-              <div className="bg-purple-100 p-3 rounded-full text-purple-600 shrink-0">
-                <Target size={24} />
+              <div className="bg-blue-100 p-3 rounded-full text-blue-600 shrink-0">
+                <FaBullseye size={24} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Our Mission</h3>
@@ -41,8 +41,8 @@ const About = () => {
 
             {/* Our Vision */}
             <div className="flex items-start gap-4">
-              <div className="bg-purple-100 p-3 rounded-full text-purple-600 shrink-0">
-                <Eye size={24} />
+              <div className="bg-blue-100 p-3 rounded-full text-blue-600 shrink-0">
+                <FaEye size={24} />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Our Vision</h3>
@@ -90,7 +90,7 @@ const About = () => {
 
         {/* Footer Label */}
         <div className="bg-gray-100 py-4 text-center">
-          <span className="text-purple-700 font-bold tracking-wider text-sm uppercase">
+          <span className="text-blue-700 font-bold tracking-wider text-sm uppercase">
             ABOUT PAGE
           </span>
         </div>
