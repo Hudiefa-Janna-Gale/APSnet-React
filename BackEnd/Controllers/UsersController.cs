@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// Handles Users: list, get one, register, login, update and delete.
+// Handles Users: list, get one, update and delete.
+// (Register and Login moved to AuthController => api/auth)
 // Every database operation uses ADO.NET (SqlConnection + SqlCommand).
+[Authorize(Roles = "Admin")]  // AUTHORIZATION: only Admins can manage users
 [ApiController]
 [Route("api/[controller]")]   // => api/users
 public class UsersController : ControllerBase
@@ -75,99 +78,6 @@ public class UsersController : ControllerBase
         }
 
         return NotFound(new { message = "User not found." });
-    }
-
-    // POST: api/users/register  -> create a new user account
-    [HttpPost("register")]
-    public IActionResult Register(User user)
-    {
-        // --- Server side validation ---
-        if (string.IsNullOrWhiteSpace(user.FullName))
-            return BadRequest(new { message = "Full name is required." });
-
-        if (string.IsNullOrWhiteSpace(user.Email) || !user.Email.Contains("@"))
-            return BadRequest(new { message = "A valid email address is required." });
-
-        if (string.IsNullOrWhiteSpace(user.PasswordHash) || user.PasswordHash.Length < 6)
-            return BadRequest(new { message = "Password must be at least 6 characters." });
-
-        using (var connection = new SqlConnection(_connectionString))
-        {
-            connection.Open();
-
-            // --- Duplicate check: email already registered? ---
-            var checkCommand = new SqlCommand(
-                "SELECT COUNT(*) FROM Users WHERE Email = @Email", connection);
-            checkCommand.Parameters.AddWithValue("@Email", user.Email);
-
-            int existing = (int)checkCommand.ExecuteScalar();
-            if (existing > 0)
-                return BadRequest(new { message = "This email is already registered." });
-
-            var insertCommand = new SqlCommand(
-                @"INSERT INTO Users (FullName, Email, PasswordHash, Role)
-                  VALUES (@FullName, @Email, @PasswordHash, @Role);
-                  SELECT CAST(SCOPE_IDENTITY() AS INT);", connection);
-
-            insertCommand.Parameters.AddWithValue("@FullName", user.FullName);
-            insertCommand.Parameters.AddWithValue("@Email", user.Email);
-            insertCommand.Parameters.AddWithValue("@PasswordHash", user.PasswordHash);
-            insertCommand.Parameters.AddWithValue("@Role", string.IsNullOrWhiteSpace(user.Role) ? "Customer" : user.Role);
-
-            int newId = (int)insertCommand.ExecuteScalar();
-
-            return Ok(new
-            {
-                message = "Account created successfully.",
-                user = new { UserID = newId, user.FullName, user.Email, Role = user.Role }
-            });
-        }
-    }
-
-    // POST: api/users/login  -> check email + password
-    [HttpPost("login")]
-    public IActionResult Login(LoginRequest request)
-    {
-        // --- Server side validation ---
-        if (string.IsNullOrWhiteSpace(request.Email))
-            return BadRequest(new { message = "Email is required." });
-
-        if (string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest(new { message = "Password is required." });
-
-        using (var connection = new SqlConnection(_connectionString))
-        {
-            var command = new SqlCommand(
-                @"SELECT UserID, FullName, Email, Role
-                  FROM Users
-                  WHERE Email = @Email AND PasswordHash = @Password", connection);
-
-            command.Parameters.AddWithValue("@Email", request.Email);
-            command.Parameters.AddWithValue("@Password", request.Password);
-
-            connection.Open();
-
-            using (SqlDataReader reader = command.ExecuteReader())
-            {
-                if (reader.Read())
-                {
-                    // Login success: return the user info (without password)
-                    return Ok(new
-                    {
-                        message = "Login successful.",
-                        user = new
-                        {
-                            UserID = (int)reader["UserID"],
-                            FullName = (string)reader["FullName"],
-                            Email = (string)reader["Email"],
-                            Role = (string)reader["Role"]
-                        }
-                    });
-                }
-            }
-        }
-
-        return Unauthorized(new { message = "Wrong email or password." });
     }
 
     // PUT: api/users/5  -> update a user's name / email / role

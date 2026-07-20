@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { FaShoppingCart, FaEye, FaHeart, FaSlidersH, FaSearch } from 'react-icons/fa';
 import api from '../api';
+import { useCart } from '../context/CartContext';
+
+// Sawir-badal (placeholder) gudaha ah — internet uma baahna
+const NO_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='%23f1f5f9'/><text x='150' y='155' font-family='sans-serif' font-size='16' fill='%2394a3b8' text-anchor='middle'>No Image</text></svg>";
 
 // Bogga alaabta dukaanka: xogta waxay ka timaadaa API-ga backend-ka
-const Products = ({ addToCart }) => {
+const Products = () => {
+  // GLOBAL STATE: addToCart waxaa laga helaa CartContext
+  const { addToCart } = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -139,7 +146,7 @@ const Products = ({ addToCart }) => {
               {/* Product Image & Hover Action Overlay */}
               <div className="relative bg-gray-50 rounded-xl p-6 h-52 flex items-center justify-center overflow-hidden mb-4">
                 <img
-                  src={product.imageURL || 'https://via.placeholder.com/300?text=No+Image'}
+                  src={product.imageURL || NO_IMAGE}
                   alt={product.name}
                   className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
                 />

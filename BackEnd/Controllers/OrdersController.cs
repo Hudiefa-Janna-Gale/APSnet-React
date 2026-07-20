@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
@@ -5,6 +6,7 @@ using Microsoft.Data.SqlClient;
 // checkout (turn a user's cart into a real order), update the status
 // and delete an order.
 // Every database operation uses ADO.NET (SqlConnection + SqlCommand).
+[Authorize]                   // AUTHORIZATION: you must be logged in to work with orders
 [ApiController]
 [Route("api/[controller]")]   // => api/orders
 public class OrdersController : ControllerBase

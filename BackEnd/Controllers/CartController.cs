@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
 // Handles the shopping cart: view a user's cart, add a product,
 // change the quantity, remove one item, or clear the whole cart.
 // Every database operation uses ADO.NET (SqlConnection + SqlCommand).
+[Authorize]                   // AUTHORIZATION: you must be logged in to use the cart
 [ApiController]
 [Route("api/[controller]")]   // => api/cart
 public class CartController : ControllerBase

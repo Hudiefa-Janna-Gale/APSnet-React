@@ -1,10 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaTimes } from "react-icons/fa";
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSearch,
+  FaTimes,
+  FaCloudUploadAlt,
+  FaSpinner,
+} from "react-icons/fa";
 import api from "../api";
 import toast from "react-hot-toast";
 
 // Bogga maamulka alaabta: CRUD dhamaystiran (Create, Read, Update, Delete)
 // oo dhan wuxuu la hadlayaa API-ga backend-ka.
+// Sawir-badal (placeholder) gudaha ah — internet uma baahna
+const NO_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='48' height='48' fill='%23f1f5f9'/></svg>";
+
 const emptyForm = {
   name: "",
   description: "",
@@ -23,6 +35,32 @@ export default function AdminProducts() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  // IMAGE UPLOAD: sawirka waxaa la geeyaa Cloudinary (POST /api/upload),
+  // URL-ka soo noqda ayaa lagu keydiyaa form.imageURL
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploading(true);
+    try {
+      const res = await api.post("/upload", formData);
+      setForm((f) => ({ ...f, imageURL: res.data.imageUrl }));
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Image upload failed.");
+    } finally {
+      setUploading(false);
+      // Reset so the same file can be picked again if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Fariimaha waxaa lagu muujiyaa toast (react-hot-toast)
   const showMessage = (text, type) =>
@@ -169,7 +207,7 @@ export default function AdminProducts() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={p.imageURL || "https://via.placeholder.com/48"}
+                        src={p.imageURL || NO_IMAGE}
                         alt={p.name}
                         className="w-12 h-12 rounded-lg object-cover bg-gray-100"
                       />
@@ -280,18 +318,56 @@ export default function AdminProducts() {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
               />
-              <input
-                type="text"
-                placeholder="Image URL"
-                value={form.imageURL}
-                onChange={(e) => setForm({ ...form, imageURL: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
-              />
+              {/* Product image: uploaded to Cloudinary through /api/upload */}
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-xl bg-slate-50 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+                  {form.imageURL ? (
+                    <img
+                      src={form.imageURL}
+                      alt="Product preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <FaCloudUploadAlt className="text-2xl text-gray-300" />
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-blue-200 hover:border-blue-400 hover:bg-blue-50/50 text-blue-600 font-semibold text-sm rounded-xl px-4 py-3 transition disabled:opacity-60"
+                  >
+                    {uploading ? (
+                      <>
+                        <FaSpinner className="animate-spin" /> Uploading to Cloudinary...
+                      </>
+                    ) : (
+                      <>
+                        <FaCloudUploadAlt />
+                        {form.imageURL ? "Change image" : "Upload product image"}
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[11px] text-gray-400 mt-1.5">
+                    JPG, PNG, WEBP or GIF — max 5 MB.
+                  </p>
+                </div>
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition"
+                  disabled={uploading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl transition"
                 >
                   {editingId ? "Update Product" : "Create Product"}
                 </button>

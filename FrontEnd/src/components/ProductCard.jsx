@@ -1,63 +1,64 @@
-import { FaStar, FaHeart, FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaImage } from "react-icons/fa";
 
 // Waxaa loo dhiibaa product dhab ah oo ka yimid API-ga
 function ProductCard({ product, onAddToCart }) {
+  const inStock = product.stockQuantity > 0;
+
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden group hover:shadow-2xl transition duration-300">
-
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
       {/* Image */}
-      <div className="relative bg-gray-100 p-6 overflow-hidden">
-
+      <div className="relative bg-gray-50 h-52 flex items-center justify-center overflow-hidden">
         {/* Badge: category-ga alaabta */}
-        <span className="absolute top-4 left-4 bg-blue-600 text-white text-xs px-3 py-1 rounded-full">
+        <span className="absolute top-3 left-3 z-10 bg-blue-600 text-white text-[11px] font-bold px-3 py-1 rounded-full">
           {product.category || "New"}
         </span>
 
-        {/* Favorite */}
-        <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow hover:text-red-500 transition">
-          <FaHeart />
-        </button>
-
-        {/* Product Image */}
-        <img
-          src={product.imageURL || "https://via.placeholder.com/300?text=No+Image"}
-          alt={product.name}
-          className="w-40 h-40 mx-auto object-contain transition duration-300 group-hover:scale-110"
-        />
-
+        {product.imageURL ? (
+          <img
+            src={product.imageURL}
+            alt={product.name}
+            className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <FaImage className="text-5xl text-gray-200" />
+        )}
       </div>
 
       {/* Content */}
-      <div className="p-5">
-
-        <h2 className="font-semibold text-lg">
+      <div className="p-5 flex flex-col flex-1">
+        <h2 className="font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
           {product.name}
         </h2>
 
-        <p className="text-blue-600 font-bold mt-2">
-          ${Number(product.price).toFixed(2)}
-        </p>
+        {product.description && (
+          <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+            {product.description}
+          </p>
+        )}
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 text-blue-500 mt-3">
-          <FaStar />
-          <FaStar />
-          <FaStar />
-          <FaStar />
-          <FaStar />
+        <div className="flex items-center justify-between mt-auto pt-4">
+          <p className="text-lg font-extrabold text-slate-900">
+            ${Number(product.price).toFixed(2)}
+          </p>
+          <span
+            className={`text-[11px] font-bold ${
+              inStock ? "text-green-600" : "text-red-500"
+            }`}
+          >
+            {inStock ? `In stock: ${product.stockQuantity}` : "Out of stock"}
+          </span>
         </div>
 
         {/* Add To Cart */}
         <button
           onClick={() => onAddToCart(product)}
-          className="mt-5 w-full bg-blue-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition duration-300"
+          disabled={!inStock}
+          className="mt-4 w-full bg-blue-600 text-white py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-bold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition duration-300"
         >
           <FaShoppingCart />
-          Add to Cart
+          {inStock ? "Add to Cart" : "Sold Out"}
         </button>
-
       </div>
-
     </div>
   );
 }

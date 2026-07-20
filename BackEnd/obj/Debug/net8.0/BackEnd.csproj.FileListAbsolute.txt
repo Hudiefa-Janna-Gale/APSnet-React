@@ -70,3 +70,6 @@
 /Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/obj/Debug/net8.0/BackEnd.pdb
 /Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/obj/Debug/net8.0/BackEnd.genruntimeconfig.cache
 /Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/obj/Debug/net8.0/ref/BackEnd.dll
+/Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/bin/Debug/net8.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+/Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/bin/Debug/net8.0/CloudinaryDotNet.dll
+/Users/hudeifajanna-gale/Documents/Builds/ASPnet-React/APSnet-React/BackEnd/bin/Debug/net8.0/Newtonsoft.Json.dll

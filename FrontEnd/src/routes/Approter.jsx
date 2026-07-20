@@ -1,5 +1,7 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
-import { FaThLarge, FaStore, FaBox, FaShoppingCart, FaUsers, FaStar, FaCog, FaBell } from "react-icons/fa";
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
+import { FaThLarge, FaStore, FaBox, FaShoppingCart, FaUsers, FaStar, FaCog, FaBell, FaSignOutAlt } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import { ProtectedRoute, AdminRoute } from "./ProtectedRoute";
 
 // Boggaga Dukaanka Caadiga ah
 import Home from "../pages/Home";
@@ -9,6 +11,7 @@ import Cart from "../pages/Cart";
 import Login from "../pages/Login";
 import Navbar from "../components/Navbar";
 import HomeProducts from "../pages/Products"; // Kii dukaanka macaamiisha
+import NotFound from "../pages/NotFound";
 
 // Boggaga maamulka Dashboard-ka
 import Dashboard from "../components/Dashboard";
@@ -18,44 +21,41 @@ import Users from "../pages/Users";
 import Reviews from "../pages/Reviews";
 import Settings from "../pages/Settings";
 
-function Approter({
-  cartItems,
-  cartCount,
-  addToCart,
-  increaseQuantity,
-  decreaseQuantity,
-  removeFromCart,
-  checkout,
-  user,
-  onLogin,
-  onLogout
-}) {
+function Approter() {
   return (
     <BrowserRouter>
       <Routes>
-        
-        {/* 1. BOGAGGA DUKAANKA (Kama muuqanayo Sidebar-ka guud) */}
-        <Route path="/" element={<><Navbar cartCount={cartCount} user={user} onLogout={onLogout} /><Home addToCart={addToCart} /></>} />
-        <Route path="/products" element={<><Navbar cartCount={cartCount} user={user} onLogout={onLogout} /><HomeProducts addToCart={addToCart} /></>} />
-        <Route path="/about" element={<><Navbar cartCount={cartCount} user={user} onLogout={onLogout} /><About /></>} />
-        <Route path="/contact" element={<><Navbar cartCount={cartCount} user={user} onLogout={onLogout} /><Contact /></>} />
-        <Route path="/login" element={<Login onLogin={onLogin} />} />
-        
-        <Route path="/cart" element={
-          <>
-            <Navbar cartCount={cartCount} user={user} onLogout={onLogout} />
-            <Cart
-              cartItems={cartItems}
-              increaseQuantity={increaseQuantity}
-              decreaseQuantity={decreaseQuantity}
-              removeFromCart={removeFromCart}
-              checkout={checkout}
-            />
-          </>
-        } />
 
-        {/* 2. BOGAGGA DASHBOARD-KA (Sidebar Layout) */}
-        <Route path="/dashboard/*" element={<SidebarLayout />} />
+        {/* 1. BOGAGGA FURAN (qof kastaa wuu arki karaa) */}
+        <Route path="/" element={<><Navbar /><Home /></>} />
+        <Route path="/products" element={<><Navbar /><HomeProducts /></>} />
+        <Route path="/about" element={<><Navbar /><About /></>} />
+        <Route path="/contact" element={<><Navbar /><Contact /></>} />
+        <Route path="/login" element={<Login />} />
+
+        {/* 2. BOG XIRAN: waa in aad LOGIN gashaa (ProtectedRoute) */}
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <Cart />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 3. DASHBOARD: ADMIN kaliya (AdminRoute) */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <AdminRoute>
+              <SidebarLayout />
+            </AdminRoute>
+          }
+        />
+
+        {/* 4. Wax kasta oo kale -> 404 */}
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>
@@ -67,11 +67,25 @@ function Approter({
 // ==========================================
 function SidebarLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  // Categories halkan si buuxda loogu tirtiray
+  // Xarfaha hore ee magaca (Avatar), tusaale "Axmed Cali" -> "AC"
+  const initials = (user?.fullName || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const menus = [
     { name: "Dashboard", path: "/dashboard", icon: <FaThLarge /> },
-    { name: "Products", path: "/dashboard/products", icon: <FaBox /> }, 
+    { name: "Products", path: "/dashboard/products", icon: <FaBox /> },
     { name: "Orders", path: "/dashboard/orders", icon: <FaShoppingCart /> },
     { name: "Users", path: "/dashboard/users", icon: <FaUsers /> },
     { name: "Reviews", path: "/dashboard/reviews", icon: <FaStar /> },
@@ -93,8 +107,8 @@ function SidebarLayout() {
                 key={i}
                 to={m.path}
                 className={`flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                  isActive 
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30" 
+                  isActive
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
                     : "hover:bg-slate-900 hover:text-white"
                 }`}
               >
@@ -103,23 +117,34 @@ function SidebarLayout() {
             );
           })}
         </nav>
+
+        {/* Logout hoosta sidebar-ka */}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-slate-900 hover:text-red-300 transition-all"
+        >
+          <FaSignOutAlt /> <span>Logout</span>
+        </button>
       </div>
 
       {/* NAV-KA SARE IYO CONTENT-KA BOGGA (MIDIG) */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white h-20 px-8 flex justify-between items-center border-b border-gray-100">
-          <input 
-            type="text" 
-            placeholder="Search here..." 
-            className="bg-slate-50 border rounded-xl px-4 py-2 w-80 text-sm outline-none focus:border-blue-400" 
+          <input
+            type="text"
+            placeholder="Search here..."
+            className="bg-slate-50 border rounded-xl px-4 py-2 w-80 text-sm outline-none focus:border-blue-400"
           />
           <div className="flex items-center gap-6">
             <FaBell className="text-gray-400 text-xl cursor-pointer hover:text-blue-600" />
+            {/* User-ka DHABTA AH ee soo galay (kama imanayo qoraal go'an) */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">JD</div>
+              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                {initials}
+              </div>
               <div className="text-left text-xs">
-                <p className="font-bold text-slate-800">John Doe</p>
-                <p className="text-gray-400">Admin</p>
+                <p className="font-bold text-slate-800">{user?.fullName}</p>
+                <p className="text-gray-400">{user?.role}</p>
               </div>
             </div>
           </div>
@@ -132,7 +157,6 @@ function SidebarLayout() {
             <Route path="products" element={<AdminProducts />} />
             <Route path="orders" element={<Orders />} />
             <Route path="users" element={<Users />} />
-            {/* Route-kii categories halkan waa laga saaray */}
             <Route path="reviews" element={<Reviews />} />
             <Route path="settings" element={<Settings />} />
           </Routes>

@@ -1,10 +1,12 @@
 using System.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
 // Provides the numbers for the Dashboard / Report page.
 // This controller demonstrates ExecuteScalar() (single values)
 // and SqlDataAdapter + DataTable (a small report table).
+[Authorize(Roles = "Admin")]  // AUTHORIZATION: only Admins can see the reports
 [ApiController]
 [Route("api/[controller]")]   // => api/reports
 public class ReportsController : ControllerBase

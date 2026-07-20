@@ -5,16 +5,21 @@ import {
   FaPlus,
   FaTag,
   FaShieldAlt,
+  FaShoppingBag,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
-// Waxaan si toos ah u isticmaalaynaa cartItems oo ka imaanaya Parent-ka (Waalidka)
-function Cart({
-  cartItems = [], // Halkaan state-kii gudaha ahaa waa laga saaray
-  increaseQuantity,
-  decreaseQuantity,
-  removeFromCart,
-  checkout,
-}) {
+// GLOBAL STATE: cart-ka waxaa laga soo akhriyaa CartContext (props ma jiraan)
+function Cart() {
+  const navigate = useNavigate();
+  const {
+    cartItems,
+    increaseQuantity,
+    decreaseQuantity,
+    removeFromCart,
+    checkout,
+  } = useCart();
 
   // Calculate subtotal - hadda wuxuu si toos ah ula socdaa cartItems-ka waalidka
   const subtotal = useMemo(() => {
@@ -46,29 +51,40 @@ function Cart({
     <div className="min-h-screen bg-gray-100 py-10">
       <div className="max-w-7xl mx-auto bg-white rounded-3xl p-8 shadow-lg">
         {/* Title */}
-        <h1 className="text-5xl font-bold mb-10">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-10">
           Shopping Cart
         </h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* LEFT SIDE */}
           <div className="lg:col-span-2">
-            {/* Header */}
-            <div className="grid grid-cols-4 font-semibold border-b pb-4">
-              <p>Product</p>
-              <p className="text-center">Quantity</p>
-              <p className="text-center">Total</p>
-              <p className="text-center">Action</p>
-            </div>
-            
+            {/* Header: waxaa la muujiyaa kaliya marka alaab jirto */}
+            {cartItems.length > 0 && (
+              <div className="grid grid-cols-4 font-semibold border-b pb-4">
+                <p>Product</p>
+                <p className="text-center">Quantity</p>
+                <p className="text-center">Total</p>
+                <p className="text-center">Action</p>
+              </div>
+            )}
+
             {cartItems.length === 0 ? (
-              <div className="py-16 text-center">
-                <h2 className="text-3xl font-bold mb-2">
-                  Your Cart is Empty
+              <div className="py-20 text-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-blue-50 flex items-center justify-center mb-6">
+                  <FaShoppingBag className="text-3xl text-blue-400" />
+                </div>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-2">
+                  Your cart is empty
                 </h2>
-                <p className="text-gray-500">
-                  Add products to your shopping cart.
+                <p className="text-gray-500 mb-8">
+                  Looks like you haven't added anything yet.
                 </p>
+                <button
+                  onClick={() => navigate("/products")}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition"
+                >
+                  Browse Products
+                </button>
               </div>
             ) : (
               cartItems.map((item, index) => {
@@ -88,7 +104,8 @@ function Cart({
                         alt={item.title}
                         className="w-24 h-24 object-cover rounded-xl bg-gray-100"
                         onError={(e) => {
-                          e.target.src = 'https://via.placeholder.com/96';
+                          e.target.src =
+                            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='96' height='96' fill='%23f1f5f9'/></svg>";
                         }}
                       />
                       <div>

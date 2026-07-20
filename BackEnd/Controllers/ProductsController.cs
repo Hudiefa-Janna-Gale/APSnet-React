@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
 // Handles everything about Products:
 // list, get one, search by name, create, update and delete.
+// READING is open to everyone (the shop must show products),
+// but CREATE / UPDATE / DELETE are Admin-only.
 // Every database operation uses ADO.NET (SqlConnection + SqlCommand).
 [ApiController]
 [Route("api/[controller]")]   // => api/products
@@ -108,7 +111,8 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
-    // POST: api/products  -> create a new product
+    // POST: api/products  -> create a new product (Admin only)
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult CreateProduct(Product product)
     {
@@ -155,7 +159,8 @@ public class ProductsController : ControllerBase
         return Ok(new { message = "Product created successfully.", product });
     }
 
-    // PUT: api/products/5  -> update an existing product
+    // PUT: api/products/5  -> update an existing product (Admin only)
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public IActionResult UpdateProduct(int id, Product product)
     {
@@ -210,7 +215,8 @@ public class ProductsController : ControllerBase
         return Ok(new { message = "Product updated successfully." });
     }
 
-    // DELETE: api/products/5  -> delete a product
+    // DELETE: api/products/5  -> delete a product (Admin only)
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public IActionResult DeleteProduct(int id)
     {

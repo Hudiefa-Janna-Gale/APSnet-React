@@ -1,8 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import api from "../api";
+import { useCart } from "../context/CartContext";
 
-function FeaturedProducts({ onAddToCart }) {
+function FeaturedProducts() {
+  const navigate = useNavigate();
+  // GLOBAL STATE: addToCart waxaa laga helaa CartContext
+  const { addToCart } = useCart();
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
 
@@ -37,25 +42,34 @@ function FeaturedProducts({ onAddToCart }) {
       .catch(() => setProducts([]));
   }, []);
 
+  // Marka dukaanku cusub yahay oo alaab la'yahay, qaybtan waa la qariyaa
+  if (products.length === 0) return null;
+
   return (
     <section
       ref={sectionRef}
-      className="py-20 bg-gray-50 dark:bg-gray-900 transition-colors duration-300"
+      className="py-20 bg-gray-50 transition-colors duration-300"
     >
       <div className="max-w-7xl mx-auto px-6">
         {/* Header */}
         <div
-          className={`flex justify-between items-center mb-12 transition-all duration-700 transform ${
+          className={`flex justify-between items-end mb-12 transition-all duration-700 transform ${
             isVisible
               ? "opacity-100 translate-y-0"
               : "opacity-0 -translate-y-10"
           }`}
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 dark:from-blue-400 dark:to-blue-400 bg-clip-text text-transparent">
-            Featured Products
-          </h1>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Featured Products
+            </h1>
+            <div className="w-16 h-1 bg-blue-600 rounded-full mt-3"></div>
+          </div>
 
-          <button className="group text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2 transition-all duration-300 hover:gap-4">
+          <button
+            onClick={() => navigate("/products")}
+            className="group text-blue-600 font-semibold flex items-center gap-2 transition-all duration-300 hover:gap-4"
+          >
             View All
             <span className="inline-block transition-transform duration-300 group-hover:translate-x-1 group-hover:scale-110">
               →
@@ -79,7 +93,7 @@ function FeaturedProducts({ onAddToCart }) {
             >
               <ProductCard
                 product={product}
-                onAddToCart={onAddToCart}
+                onAddToCart={addToCart}
               />
             </div>
           ))}

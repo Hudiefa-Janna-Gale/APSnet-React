@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaUserCircle, FaUser } from "react-icons/fa";
-import api from "../api";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 
-function Login({ onLogin }) {
+function Login() {
   const navigate = useNavigate();
+
+  // AUTH CONTEXT: login/register waxay soo celiyaan token + user,
+  // waxayna dispatch u diraan reducer-ka (global state).
+  const { login, register } = useAuth();
 
   // isRegister: false = Login mode, true = Register mode
   const [isRegister, setIsRegister] = useState(false);
@@ -35,31 +39,18 @@ function Login({ onLogin }) {
     }
 
     try {
-      if (isRegister) {
-        // POST /api/users/register
-        const res = await api.post("/users/register", {
-          fullName,
-          email,
-          passwordHash: password,
-        });
-        toast.success(res.data.message);
-        // Isla markiiba ku gal account-ka cusub
-        if (onLogin) {
-          setTimeout(() => {
-            onLogin(res.data.user);
-            navigate("/");
-          }, 1200);
-        }
+      // POST /api/auth/register ama /api/auth/login (JWT token ayaa la keydiyaa)
+      const data = isRegister
+        ? await register(fullName, email, password)
+        : await login(email, password);
+
+      toast.success(data.message);
+
+      // Admin -> Dashboard, User caadi ah -> Bogga hore
+      if (data.user.role === "Admin") {
+        navigate("/dashboard");
       } else {
-        // POST /api/users/login
-        const res = await api.post("/users/login", { email, password });
-        toast.success(res.data.message);
-        if (onLogin) {
-          setTimeout(() => {
-            onLogin(res.data.user);
-            navigate("/");
-          }, 1200);
-        }
+        navigate("/");
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Something went wrong. Is the API running?");
