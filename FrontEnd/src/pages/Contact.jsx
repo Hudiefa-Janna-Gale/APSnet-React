@@ -5,14 +5,12 @@ import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaPaperPlane } from "react-icons/f
 function Contact() {
   return (
     <>
-      
 
       <div className="bg-gray-100 py-16">
         <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
 
           <div className="grid md:grid-cols-2">
 
-            {/* Contact Form */}
             <div className="p-10">
 
               <h1 className="text-4xl font-bold mb-4">
@@ -71,7 +69,6 @@ function Contact() {
 
             </div>
 
-            {/* Contact Information */}
             <div className="bg-gray-50 p-10">
 
               <h2 className="text-3xl font-bold mb-8">
@@ -129,8 +126,6 @@ function Contact() {
                 </div>
 
               </div>
-
-              {/* Google Map */}
 
               <div className="mt-10 rounded-xl overflow-hidden shadow">
 

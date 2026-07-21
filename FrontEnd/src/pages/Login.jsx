@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaUserCircle, FaUser } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
@@ -7,11 +7,14 @@ import toast from "react-hot-toast";
 function Login() {
   const navigate = useNavigate();
 
-  // AUTH CONTEXT: login/register waxay soo celiyaan token + user,
-  // waxayna dispatch u diraan reducer-ka (global state).
-  const { login, register } = useAuth();
+  const { login, register, user, isAdmin } = useAuth();
 
-  // isRegister: false = Login mode, true = Register mode
+  useEffect(() => {
+    if (user) {
+      navigate(isAdmin ? "/dashboard" : "/", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
   const [isRegister, setIsRegister] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,7 +23,6 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // --- Client side validation ---
     if (isRegister && fullName.trim() === "") {
       toast.error("Please enter your full name!");
       return;
@@ -39,18 +41,17 @@ function Login() {
     }
 
     try {
-      // POST /api/auth/register ama /api/auth/login (JWT token ayaa la keydiyaa)
+
       const data = isRegister
         ? await register(fullName, email, password)
         : await login(email, password);
 
       toast.success(data.message);
 
-      // Admin -> Dashboard, User caadi ah -> Bogga hore
       if (data.user.role === "Admin") {
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
       } else {
-        navigate("/");
+        navigate("/", { replace: true });
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Something went wrong. Is the API running?");
@@ -62,7 +63,6 @@ function Login() {
 
       <div className="bg-white rounded-[2rem] shadow-2xl flex max-w-4xl w-full overflow-hidden min-h-[500px]">
 
-        {/* Left Side */}
         <div className="hidden md:flex md:w-1/2 bg-gradient-to-b from-blue-500 to-blue-800 text-white p-12 flex-col justify-center relative overflow-hidden">
 
           <div className="absolute -right-10 top-0 bottom-0 w-32 bg-white opacity-15 rounded-l-full transform scale-y-125"></div>
@@ -78,7 +78,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Right Side */}
         <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
 
           <div className="flex justify-center mb-4">
@@ -89,10 +88,8 @@ function Login() {
             {isRegister ? "Create your account below." : "Login below to get started."}
           </p>
 
-
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Full name: kaliya marka la is-diiwaangelinayo */}
             {isRegister && (
               <div className="relative">
                 <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />

@@ -11,9 +11,6 @@ import {
 import api from "../api";
 import toast from "react-hot-toast";
 
-// Bogga maamulka alaabta: CRUD dhamaystiran (Create, Read, Update, Delete)
-// oo dhan wuxuu la hadlayaa API-ga backend-ka.
-// Sawir-badal (placeholder) gudaha ah — internet uma baahna
 const NO_IMAGE =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='48' height='48' fill='%23f1f5f9'/></svg>";
 
@@ -31,13 +28,10 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Form state: haddii editingId != null waa UPDATE, haddii kale waa CREATE
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
-  // IMAGE UPLOAD: sawirka waxaa la geeyaa Cloudinary (POST /api/upload),
-  // URL-ka soo noqda ayaa lagu keydiyaa form.imageURL
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -57,16 +51,14 @@ export default function AdminProducts() {
       toast.error(err.response?.data?.message || "Image upload failed.");
     } finally {
       setUploading(false);
-      // Reset so the same file can be picked again if needed
+
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  // Fariimaha waxaa lagu muujiyaa toast (react-hot-toast)
   const showMessage = (text, type) =>
     type === "success" ? toast.success(text) : toast.error(text);
 
-  // READ: soo akhri alaabta (ama raadi magac)
   const loadProducts = useCallback(async (term = "") => {
     try {
       const url = term.trim()
@@ -105,11 +97,9 @@ export default function AdminProducts() {
     setShowForm(true);
   };
 
-  // CREATE / UPDATE
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // --- Client side validation ---
     if (!form.name.trim()) return showMessage("Product name is required.", "error");
     if (!form.price || Number(form.price) <= 0)
       return showMessage("Price must be greater than zero.", "error");
@@ -140,7 +130,6 @@ export default function AdminProducts() {
     }
   };
 
-  // DELETE
   const handleDelete = async (p) => {
     if (!window.confirm(`Delete "${p.name}"?`)) return;
     try {
@@ -153,7 +142,7 @@ export default function AdminProducts() {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen flex-1">
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-screen flex-1">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-slate-800">Products</h1>
         <button
@@ -164,7 +153,6 @@ export default function AdminProducts() {
         </button>
       </div>
 
-      {/* Search: wuxuu isticmaalaa /api/products/search */}
       <div className="relative mb-6 max-w-md">
         <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
@@ -176,9 +164,8 @@ export default function AdminProducts() {
         />
       </div>
 
-      {/* Products table */}
-      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+        <table className="w-full text-sm min-w-[600px]">
           <thead className="bg-slate-100 text-slate-600 text-left">
             <tr>
               <th className="px-6 py-4">Product</th>
@@ -261,7 +248,6 @@ export default function AdminProducts() {
         </table>
       </div>
 
-      {/* Create / Edit modal form */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl">
@@ -318,7 +304,7 @@ export default function AdminProducts() {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400"
               />
-              {/* Product image: uploaded to Cloudinary through /api/upload */}
+
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-xl bg-slate-50 border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                   {form.imageURL ? (

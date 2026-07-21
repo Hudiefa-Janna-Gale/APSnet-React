@@ -1,28 +1,34 @@
 using System.Text;
 using BackEnd.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Enable API controllers (ProductsController, UsersController, ...)
+builder.Host.UseSerilog((ctx, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day));
+
 builder.Services.AddControllers();
 
-// 2. TokenService creates the JWT token after login (see Services/TokenService.cs)
 builder.Services.AddScoped<TokenService>();
 
-// 3. AUTHENTICATION: teach the API how to READ and VERIFY the JWT token
-//    that the React app sends in the "Authorization: Bearer ..." header.
+builder.Services.AddSingleton<CloudinaryService>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,            // token must come from OUR API
-            ValidateAudience = true,          // token must be meant for OUR React app
-            ValidateLifetime = true,          // expired tokens are rejected
-            ValidateIssuerSigningKey = true,  // signature must match our secret key
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -30,11 +36,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// 4. AUTHORIZATION: enables [Authorize] and [Authorize(Roles = "Admin")]
 builder.Services.AddAuthorization();
 
-// 5. Enable Swagger so we can test every endpoint in the browser
-//    (with an "Authorize" button to paste the JWT token)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -63,12 +66,15 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// 6. Enable CORS so the React app (another port) is allowed to call this API
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -76,18 +82,48 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Swagger UI is available at /swagger
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<IExceptionHandlerFeature>();
+        var ex = feature?.Error;
+        if (ex is not null)
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Unhandled exception for {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { message = "Something went wrong. Please try again." });
+    });
+});
+
+app.UseSerilogRequestLogging();
+
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "no-referrer";
+    headers["X-XSS-Protection"] = "0";
+    await next();
+});
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseCors("AllowReactApp");
 
-// ORDER MATTERS: first WHO are you (authentication),
-// then WHAT are you allowed to do (authorization).
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map every [Route] defined in the controllers
 app.MapControllers();
 
 app.Run();

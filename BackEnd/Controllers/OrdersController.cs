@@ -2,23 +2,21 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// Handles Orders: list all orders, load one order with its items,
-// checkout (turn a user's cart into a real order), update the status
-// and delete an order.
-// Every database operation uses ADO.NET (SqlConnection + SqlCommand).
-[Authorize]                   // AUTHORIZATION: you must be logged in to work with orders
+[Authorize]
 [ApiController]
-[Route("api/[controller]")]   // => api/orders
-public class OrdersController : ControllerBase
+[Route("api/[controller]")]
+public class OrdersController : SecureController
 {
     private readonly string _connectionString;
+    private readonly ILogger<OrdersController> _logger;
 
-    public OrdersController(IConfiguration configuration)
+    public OrdersController(IConfiguration configuration, ILogger<OrdersController> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        _logger = logger;
     }
 
-    // GET: api/orders  -> all orders with the customer's name
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public IActionResult GetAllOrders()
     {
@@ -55,7 +53,71 @@ public class OrdersController : ControllerBase
         return Ok(orders);
     }
 
-    // GET: api/orders/1  -> one order together with its items
+    [HttpGet("mine")]
+    public IActionResult GetMyOrders()
+    {
+        var orders = new List<Order>();
+
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            connection.Open();
+
+            var command = new SqlCommand(
+                @"SELECT o.OrderID, o.UserID, o.OrderDate, o.TotalAmount, o.Status,
+                         u.FullName AS CustomerName
+                  FROM Orders o
+                  INNER JOIN Users u ON o.UserID = u.UserID
+                  WHERE o.UserID = @UserID
+                  ORDER BY o.OrderDate DESC", connection);
+            command.Parameters.AddWithValue("@UserID", CurrentUserId);
+
+            using (SqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    orders.Add(new Order
+                    {
+                        OrderID = (int)reader["OrderID"],
+                        UserID = (int)reader["UserID"],
+                        OrderDate = (DateTime)reader["OrderDate"],
+                        TotalAmount = (decimal)reader["TotalAmount"],
+                        Status = (string)reader["Status"],
+                        CustomerName = (string)reader["CustomerName"]
+                    });
+                }
+            }
+
+            foreach (var order in orders)
+            {
+                var itemsCommand = new SqlCommand(
+                    @"SELECT oi.OrderItemID, oi.OrderID, oi.ProductID, oi.Quantity, oi.UnitPrice,
+                             p.Name AS ProductName
+                      FROM OrderItems oi
+                      INNER JOIN Products p ON oi.ProductID = p.ProductID
+                      WHERE oi.OrderID = @OrderID", connection);
+                itemsCommand.Parameters.AddWithValue("@OrderID", order.OrderID);
+
+                using (SqlDataReader reader = itemsCommand.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        order.Items.Add(new OrderItem
+                        {
+                            OrderItemID = (int)reader["OrderItemID"],
+                            OrderID = (int)reader["OrderID"],
+                            ProductID = (int)reader["ProductID"],
+                            Quantity = (int)reader["Quantity"],
+                            UnitPrice = (decimal)reader["UnitPrice"],
+                            ProductName = (string)reader["ProductName"]
+                        });
+                    }
+                }
+            }
+        }
+
+        return Ok(orders);
+    }
+
     [HttpGet("{id}")]
     public IActionResult GetOrderById(int id)
     {
@@ -65,7 +127,6 @@ public class OrdersController : ControllerBase
         {
             connection.Open();
 
-            // 1) Load the order itself
             var orderCommand = new SqlCommand(
                 @"SELECT o.OrderID, o.UserID, o.OrderDate, o.TotalAmount, o.Status,
                          u.FullName AS CustomerName
@@ -93,7 +154,9 @@ public class OrdersController : ControllerBase
             if (order == null)
                 return NotFound(new { message = "Order not found." });
 
-            // 2) Load the items of this order
+            if (!IsAdmin && order.UserID != CurrentUserId)
+                return Forbid();
+
             var itemsCommand = new SqlCommand(
                 @"SELECT oi.OrderItemID, oi.OrderID, oi.ProductID, oi.Quantity, oi.UnitPrice,
                          p.Name AS ProductName
@@ -122,22 +185,19 @@ public class OrdersController : ControllerBase
         return Ok(order);
     }
 
-    // POST: api/orders/checkout/2  -> turn the user's cart into an order
-    // Steps: read the cart, calculate the total, create the order,
-    // copy the cart rows into OrderItems, then empty the cart.
-    [HttpPost("checkout/{userId}")]
-    public IActionResult Checkout(int userId)
+    [HttpPost("checkout")]
+    public IActionResult Checkout()
     {
+        int userId = CurrentUserId;
         using (var connection = new SqlConnection(_connectionString))
         {
             connection.Open();
 
-            // A transaction makes sure all steps succeed together or not at all
             using (SqlTransaction transaction = connection.BeginTransaction())
             {
                 try
                 {
-                    // 1) Read the user's cart (with the current product prices)
+
                     var cartItems = new List<Cart>();
 
                     var cartCommand = new SqlCommand(
@@ -163,14 +223,12 @@ public class OrdersController : ControllerBase
                     if (cartItems.Count == 0)
                         return BadRequest(new { message = "The cart is empty. Add products before checkout." });
 
-                    // 2) Calculate the total amount
                     decimal totalAmount = 0;
                     foreach (var item in cartItems)
                     {
                         totalAmount += item.Price * item.Quantity;
                     }
 
-                    // 3) Create the order and get the new OrderID
                     var orderCommand = new SqlCommand(
                         @"INSERT INTO Orders (UserID, TotalAmount, Status)
                           VALUES (@UserID, @TotalAmount, 'Pending');
@@ -180,7 +238,6 @@ public class OrdersController : ControllerBase
 
                     int newOrderId = (int)orderCommand.ExecuteScalar();
 
-                    // 4) Copy every cart row into the OrderItems table
                     foreach (var item in cartItems)
                     {
                         var itemCommand = new SqlCommand(
@@ -193,7 +250,6 @@ public class OrdersController : ControllerBase
                         itemCommand.ExecuteNonQuery();
                     }
 
-                    // 5) Empty the user's cart
                     var clearCommand = new SqlCommand(
                         "DELETE FROM Cart WHERE UserID = @UserID", connection, transaction);
                     clearCommand.Parameters.AddWithValue("@UserID", userId);
@@ -208,9 +264,10 @@ public class OrdersController : ControllerBase
                         totalAmount
                     });
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Something went wrong -> undo everything
+
+                    _logger.LogError(ex, "Checkout failed for user {UserId}", userId);
                     transaction.Rollback();
                     return StatusCode(500, new { message = "Checkout failed. Please try again." });
                 }
@@ -218,11 +275,11 @@ public class OrdersController : ControllerBase
         }
     }
 
-    // PUT: api/orders/1/status  -> change the status of an order
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}/status")]
     public IActionResult UpdateStatus(int id, Order order)
     {
-        // --- Server side validation ---
+
         var allowedStatuses = new[] { "Pending", "Completed", "Cancelled" };
         if (!allowedStatuses.Contains(order.Status))
             return BadRequest(new { message = "Status must be Pending, Completed or Cancelled." });
@@ -244,8 +301,7 @@ public class OrdersController : ControllerBase
         return Ok(new { message = "Order status updated." });
     }
 
-    // DELETE: api/orders/1  -> delete an order
-    // (OrderItems are removed automatically thanks to ON DELETE CASCADE)
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public IActionResult DeleteOrder(int id)
     {

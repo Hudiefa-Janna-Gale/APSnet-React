@@ -2,27 +2,25 @@ using BackEnd.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// AUTHENTICATION controller: register + login.
-// On success it returns a JWT token that the React app sends back
-// with every request ("Authorization: Bearer <token>").
 [ApiController]
-[Route("api/[controller]")]   // => api/auth
+[Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly string _connectionString;
     private readonly TokenService _tokenService;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IConfiguration configuration, TokenService tokenService)
+    public AuthController(IConfiguration configuration, TokenService tokenService, ILogger<AuthController> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")!;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
-    // POST: api/auth/register  -> create a new account (always role "Customer")
     [HttpPost("register")]
     public IActionResult Register(User user)
     {
-        // --- Server side validation ---
+
         if (string.IsNullOrWhiteSpace(user.FullName))
             return BadRequest(new { message = "Full name is required." });
 
@@ -36,7 +34,6 @@ public class AuthController : ControllerBase
         {
             connection.Open();
 
-            // --- Duplicate check: email already registered? ---
             var checkCommand = new SqlCommand(
                 "SELECT COUNT(*) FROM Users WHERE Email = @Email", connection);
             checkCommand.Parameters.AddWithValue("@Email", user.Email);
@@ -45,8 +42,6 @@ public class AuthController : ControllerBase
             if (existing > 0)
                 return BadRequest(new { message = "This email is already registered." });
 
-            // SECURITY: the client can NEVER choose his own role here.
-            // New accounts are always "Customer"; only an Admin can promote a user.
             var insertCommand = new SqlCommand(
                 @"INSERT INTO Users (FullName, Email, PasswordHash, Role)
                   VALUES (@FullName, @Email, @PasswordHash, 'Customer');
@@ -54,12 +49,11 @@ public class AuthController : ControllerBase
 
             insertCommand.Parameters.AddWithValue("@FullName", user.FullName);
             insertCommand.Parameters.AddWithValue("@Email", user.Email);
-            // SECURITY: hash the password before saving it
+
             insertCommand.Parameters.AddWithValue("@PasswordHash", PasswordHelper.Hash(user.PasswordHash));
 
             int newId = (int)insertCommand.ExecuteScalar();
 
-            // Create the token immediately so the user is logged in after register
             string token = _tokenService.CreateToken(newId, user.FullName, user.Email, "Customer");
 
             return Ok(new
@@ -71,11 +65,10 @@ public class AuthController : ControllerBase
         }
     }
 
-    // POST: api/auth/login  -> check email + password, return JWT token
     [HttpPost("login")]
     public IActionResult Login(LoginRequest request)
     {
-        // --- Server side validation ---
+
         if (string.IsNullOrWhiteSpace(request.Email))
             return BadRequest(new { message = "Email is required." });
 
@@ -92,35 +85,48 @@ public class AuthController : ControllerBase
 
             connection.Open();
 
+            int userId = 0;
+            string fullName = "", email = "", role = "", storedHash = "";
+            bool found = false;
+
             using (SqlDataReader reader = command.ExecuteReader())
             {
                 if (reader.Read())
                 {
-                    string storedHash = (string)reader["PasswordHash"];
-
-                    // Compare the hash of the typed password with the saved hash
-                    if (PasswordHelper.Verify(request.Password, storedHash))
-                    {
-                        int userId = (int)reader["UserID"];
-                        string fullName = (string)reader["FullName"];
-                        string email = (string)reader["Email"];
-                        string role = (string)reader["Role"];
-
-                        string token = _tokenService.CreateToken(userId, fullName, email, role);
-
-                        return Ok(new
-                        {
-                            message = "Login successful.",
-                            token,
-                            user = new { UserID = userId, FullName = fullName, Email = email, Role = role }
-                        });
-                    }
+                    found = true;
+                    userId = (int)reader["UserID"];
+                    fullName = (string)reader["FullName"];
+                    email = (string)reader["Email"];
+                    role = (string)reader["Role"];
+                    storedHash = (string)reader["PasswordHash"];
                 }
+            }
+
+            if (found && PasswordHelper.Verify(request.Password, storedHash))
+            {
+
+                if (PasswordHelper.NeedsUpgrade(storedHash))
+                {
+                    var upgradeCommand = new SqlCommand(
+                        "UPDATE Users SET PasswordHash = @Hash WHERE UserID = @UserID", connection);
+                    upgradeCommand.Parameters.AddWithValue("@Hash", PasswordHelper.Hash(request.Password));
+                    upgradeCommand.Parameters.AddWithValue("@UserID", userId);
+                    upgradeCommand.ExecuteNonQuery();
+                    _logger.LogInformation("Upgraded password hash to BCrypt for user {UserId}", userId);
+                }
+
+                string token = _tokenService.CreateToken(userId, fullName, email, role);
+
+                return Ok(new
+                {
+                    message = "Login successful.",
+                    token,
+                    user = new { UserID = userId, FullName = fullName, Email = email, Role = role }
+                });
             }
         }
 
-        // Same message for "email not found" and "wrong password"
-        // so an attacker cannot guess which emails exist.
+        _logger.LogWarning("Failed login attempt for email {Email}", request.Email);
         return Unauthorized(new { message = "Wrong email or password." });
     }
 }

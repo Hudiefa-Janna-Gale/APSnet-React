@@ -10,10 +10,12 @@
 
   <ItemGroup>
     <!-- ADO.NET provider for SQL Server (SqlConnection, SqlCommand, ...) -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="CloudinaryDotNet" Version="1.29.2" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <!-- JWT Bearer authentication (login tokens) -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <!-- Swagger UI for testing the API -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>

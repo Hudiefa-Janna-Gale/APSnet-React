@@ -4,9 +4,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer
 } from "recharts";
+import toast from "react-hot-toast";
 import api from "../api";
+import { useAuth } from "../context/AuthContext";
 
-// Dashboard-ka: dhammaan tirooyinka waxay ka imanayaan API-ga (reports + orders)
 const statusColors = {
   Completed: "text-green-600 bg-green-50",
   Pending: "text-amber-600 bg-amber-50",
@@ -14,6 +15,9 @@ const statusColors = {
 };
 
 function Dashboard() {
+
+  const { user } = useAuth();
+
   const [summary, setSummary] = useState({
     totalProducts: 0,
     totalUsers: 0,
@@ -22,22 +26,35 @@ function Dashboard() {
   });
   const [salesByCategory, setSalesByCategory] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    // GET /api/reports/summary -> kaararka kore
-    api.get("/reports/summary")
-      .then((res) => setSummary(res.data))
-      .catch(() => {});
 
-    // GET /api/reports/sales-by-category -> chart-ka
-    api.get("/reports/sales-by-category")
-      .then((res) => setSalesByCategory(res.data))
-      .catch(() => {});
+    async function loadDashboard() {
+      setLoading(true);
+      setError(false);
+      try {
+        const [summaryRes, salesRes, ordersRes] = await Promise.all([
+          api.get("/reports/summary"),
+          api.get("/reports/sales-by-category"),
+          api.get("/orders"),
+        ]);
+        setSummary(summaryRes.data);
+        setSalesByCategory(salesRes.data);
+        setRecentOrders(ordersRes.data.slice(0, 4));
+      } catch (err) {
+        console.error("Failed to load dashboard:", err);
+        setError(true);
+        toast.error(
+          err.response?.data?.message || "Could not load dashboard data. Is the API running?"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
 
-    // GET /api/orders -> dalabaadka ugu dambeeyay
-    api.get("/orders")
-      .then((res) => setRecentOrders(res.data.slice(0, 4)))
-      .catch(() => {});
+    loadDashboard();
   }, []);
 
   const today = new Date().toLocaleDateString("en-US", {
@@ -47,16 +64,16 @@ function Dashboard() {
   });
 
   return (
-    <main className="p-8 bg-gray-100 min-h-screen">
+    <main className="p-4 sm:p-8 bg-gray-100 min-h-screen">
 
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            Welcome back <FaRegHandPaper className="text-blue-600" />
+            Welcome back, {user?.fullName || "there"}
+            <FaRegHandPaper className="text-blue-600" />
           </h1>
           <p className="text-gray-500 mt-2">
-            Here's what's happening with your store today.
+            {user?.role === "Admin" ? "Signed in as Admin" : "Signed in"} — here's what's happening with your store today.
           </p>
         </div>
 
@@ -65,7 +82,15 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Cards: xogta /api/reports/summary */}
+      {loading && (
+        <p className="text-gray-500 mb-6">Loading dashboard data...</p>
+      )}
+      {error && !loading && (
+        <div className="bg-red-50 text-red-700 px-5 py-3 rounded-lg mb-6">
+          Could not load dashboard data. Please check the API and try again.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           title="Total Products"
@@ -93,10 +118,8 @@ function Dashboard() {
         />
       </div>
 
-      {/* Chart + Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
 
-        {/* Chart: xogta /api/reports/sales-by-category */}
         <div className="bg-white p-6 rounded-xl shadow-sm lg:col-span-2">
           <h2 className="text-xl font-bold mb-5">
             Sales by Category
@@ -118,7 +141,6 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Recent orders: xogta /api/orders */}
         <div className="bg-white p-6 rounded-xl shadow-sm">
           <h2 className="text-xl font-bold mb-5">
             Recent Orders

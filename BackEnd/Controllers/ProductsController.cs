@@ -1,25 +1,35 @@
+using BackEnd.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// Handles everything about Products:
-// list, get one, search by name, create, update and delete.
-// READING is open to everyone (the shop must show products),
-// but CREATE / UPDATE / DELETE are Admin-only.
-// Every database operation uses ADO.NET (SqlConnection + SqlCommand).
 [ApiController]
-[Route("api/[controller]")]   // => api/products
+[Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
     private readonly string _connectionString;
+    private readonly ILogger<ProductsController> _logger;
+    private readonly CloudinaryService _cloudinary;
 
-    public ProductsController(IConfiguration configuration)
+    public ProductsController(
+        IConfiguration configuration,
+        ILogger<ProductsController> logger,
+        CloudinaryService cloudinary)
     {
-        // Read the connection string from appsettings.json
+
         _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        _logger = logger;
+        _cloudinary = cloudinary;
     }
 
-    // Helper: turn the current row of a SqlDataReader into a Product object
+    private string? GetImageUrl(SqlConnection connection, int productId)
+    {
+        var cmd = new SqlCommand(
+            "SELECT ImageURL FROM Products WHERE ProductID = @ProductID", connection);
+        cmd.Parameters.AddWithValue("@ProductID", productId);
+        return cmd.ExecuteScalar() as string;
+    }
+
     private static Product ReadProduct(SqlDataReader reader)
     {
         return new Product
@@ -35,7 +45,6 @@ public class ProductsController : ControllerBase
         };
     }
 
-    // GET: api/products  -> all products
     [HttpGet]
     public IActionResult GetAllProducts()
     {
@@ -60,7 +69,6 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
-    // GET: api/products/5  -> one product by id
     [HttpGet("{id}")]
     public IActionResult GetProductById(int id)
     {
@@ -84,7 +92,6 @@ public class ProductsController : ControllerBase
         return NotFound(new { message = "Product not found." });
     }
 
-    // GET: api/products/search?name=shirt  -> search products by name
     [HttpGet("search")]
     public IActionResult SearchProducts(string? name)
     {
@@ -92,7 +99,7 @@ public class ProductsController : ControllerBase
 
         using (var connection = new SqlConnection(_connectionString))
         {
-            // LIKE with % on both sides = "contains" search
+
             var command = new SqlCommand(
                 "SELECT * FROM Products WHERE Name LIKE @Name ORDER BY Name", connection);
             command.Parameters.AddWithValue("@Name", "%" + (name ?? "") + "%");
@@ -111,12 +118,11 @@ public class ProductsController : ControllerBase
         return Ok(products);
     }
 
-    // POST: api/products  -> create a new product (Admin only)
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult CreateProduct(Product product)
     {
-        // --- Server side validation ---
+
         if (string.IsNullOrWhiteSpace(product.Name))
             return BadRequest(new { message = "Product name is required." });
 
@@ -130,7 +136,6 @@ public class ProductsController : ControllerBase
         {
             connection.Open();
 
-            // --- Duplicate check: is there already a product with this name? ---
             var checkCommand = new SqlCommand(
                 "SELECT COUNT(*) FROM Products WHERE Name = @Name", connection);
             checkCommand.Parameters.AddWithValue("@Name", product.Name);
@@ -139,7 +144,6 @@ public class ProductsController : ControllerBase
             if (existing > 0)
                 return BadRequest(new { message = "A product with this name already exists." });
 
-            // --- Insert the new product and get its new ID back ---
             var insertCommand = new SqlCommand(
                 @"INSERT INTO Products (Name, Description, Price, StockQuantity, Category, ImageURL)
                   VALUES (@Name, @Description, @Price, @StockQuantity, @Category, @ImageURL);
@@ -159,12 +163,11 @@ public class ProductsController : ControllerBase
         return Ok(new { message = "Product created successfully.", product });
     }
 
-    // PUT: api/products/5  -> update an existing product (Admin only)
     [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
-    public IActionResult UpdateProduct(int id, Product product)
+    public async Task<IActionResult> UpdateProduct(int id, Product product)
     {
-        // --- Server side validation ---
+
         if (string.IsNullOrWhiteSpace(product.Name))
             return BadRequest(new { message = "Product name is required." });
 
@@ -174,11 +177,14 @@ public class ProductsController : ControllerBase
         if (product.StockQuantity < 0)
             return BadRequest(new { message = "Stock quantity cannot be negative." });
 
+        string? oldImageUrl = null;
+
         using (var connection = new SqlConnection(_connectionString))
         {
             connection.Open();
 
-            // Duplicate check: another product (different id) with the same name?
+            oldImageUrl = GetImageUrl(connection, id);
+
             var checkCommand = new SqlCommand(
                 "SELECT COUNT(*) FROM Products WHERE Name = @Name AND ProductID <> @ProductID", connection);
             checkCommand.Parameters.AddWithValue("@Name", product.Name);
@@ -212,19 +218,30 @@ public class ProductsController : ControllerBase
                 return NotFound(new { message = "Product not found." });
         }
 
+        if (!string.IsNullOrEmpty(oldImageUrl) && oldImageUrl != product.ImageURL)
+        {
+            try { await _cloudinary.DeleteByUrlAsync(oldImageUrl); }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not delete old Cloudinary image for product {ProductID}", id);
+            }
+        }
+
         return Ok(new { message = "Product updated successfully." });
     }
 
-    // DELETE: api/products/5  -> delete a product (Admin only)
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
-    public IActionResult DeleteProduct(int id)
+    public async Task<IActionResult> DeleteProduct(int id)
     {
+        string? imageUrl = null;
+
         using (var connection = new SqlConnection(_connectionString))
         {
             connection.Open();
 
-            // First remove it from any shopping cart (foreign key)
+            imageUrl = GetImageUrl(connection, id);
+
             var deleteCartCommand = new SqlCommand(
                 "DELETE FROM Cart WHERE ProductID = @ProductID", connection);
             deleteCartCommand.Parameters.AddWithValue("@ProductID", id);
@@ -241,10 +258,20 @@ public class ProductsController : ControllerBase
                 if (rowsAffected == 0)
                     return NotFound(new { message = "Product not found." });
             }
-            catch (SqlException)
+            catch (SqlException ex)
             {
-                // The product is used inside an old order, so we cannot delete it
+
+                _logger.LogWarning(ex, "Delete blocked for product {ProductID} (referenced by existing orders)", id);
                 return BadRequest(new { message = "This product cannot be deleted because it belongs to existing orders." });
+            }
+        }
+
+        if (!string.IsNullOrEmpty(imageUrl))
+        {
+            try { await _cloudinary.DeleteByUrlAsync(imageUrl); }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not delete Cloudinary image for product {ProductID}", id);
             }
         }
 

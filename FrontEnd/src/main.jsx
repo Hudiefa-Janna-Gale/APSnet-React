@@ -3,11 +3,14 @@ import { createRoot } from 'react-dom/client'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
-    {/* Toast notifications (beddelka alert-yadii hore) */}
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+
     <Toaster
       position="top-right"
       toastOptions={{

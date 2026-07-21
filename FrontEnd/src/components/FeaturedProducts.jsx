@@ -6,23 +6,22 @@ import { useCart } from "../context/CartContext";
 
 function FeaturedProducts() {
   const navigate = useNavigate();
-  // GLOBAL STATE: addToCart waxaa laga helaa CartContext
+
   const { addToCart } = useCart();
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
 
-  // Scroll-triggered animation using Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.disconnect(); // Stop observing after first trigger
+          observer.disconnect();
         }
       },
       {
-        threshold: 0.1, // Trigger when 10% of section is visible
-        rootMargin: "0px 0px -50px 0px", // Slightly delay trigger
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
       }
     );
 
@@ -33,16 +32,17 @@ function FeaturedProducts() {
     return () => observer.disconnect();
   }, []);
 
-  // Alaabta waxaa laga soo akhriyaa API-ga (8-da ugu dambeysay)
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
     api.get("/products")
       .then((res) => setProducts(res.data.slice(0, 8)))
-      .catch(() => setProducts([]));
+      .catch((err) => {
+        console.error("Failed to load featured products:", err);
+        setProducts([]);
+      });
   }, []);
 
-  // Marka dukaanku cusub yahay oo alaab la'yahay, qaybtan waa la qariyaa
   if (products.length === 0) return null;
 
   return (
@@ -51,7 +51,7 @@ function FeaturedProducts() {
       className="py-20 bg-gray-50 transition-colors duration-300"
     >
       <div className="max-w-7xl mx-auto px-6">
-        {/* Header */}
+
         <div
           className={`flex justify-between items-end mb-12 transition-all duration-700 transform ${
             isVisible
@@ -77,7 +77,6 @@ function FeaturedProducts() {
           </button>
         </div>
 
-        {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product, index) => (
             <div

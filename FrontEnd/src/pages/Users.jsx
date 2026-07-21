@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { FaTrash } from "react-icons/fa";
+import { FaTrash, FaLock } from "react-icons/fa";
 import api from "../api";
 import toast from "react-hot-toast";
 
-// Bogga isticmaalayaasha: liiska users-ka dhabta ah ee API-ga.
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +22,6 @@ function Users() {
     loadUsers();
   }, [loadUsers]);
 
-  // DELETE /api/users/{id}
   const deleteUser = async (u) => {
     if (!window.confirm(`Delete user "${u.fullName}"?`)) return;
     try {
@@ -36,7 +34,7 @@ function Users() {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen flex-1">
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-screen flex-1">
       <h1 className="text-3xl font-bold text-slate-800 mb-6">Registered Users</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -66,13 +64,23 @@ function Users() {
                   {u.role}
                 </span>
               </div>
-              <button
-                onClick={() => deleteUser(u)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                title="Delete user"
-              >
-                <FaTrash />
-              </button>
+
+              {u.role === "Admin" ? (
+                <span
+                  className="p-2 text-gray-300"
+                  title="Admin accounts are protected and cannot be deleted"
+                >
+                  <FaLock />
+                </span>
+              ) : (
+                <button
+                  onClick={() => deleteUser(u)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                  title="Delete user"
+                >
+                  <FaTrash />
+                </button>
+              )}
             </div>
           ))
         )}

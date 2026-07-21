@@ -109,9 +109,11 @@ GO
 
 /* ============================================================
    Seed: ONLY the admin account (no mock data).
-   Password is 123456, stored as its SHA256 hash (Base64),
-   matching PasswordHelper.Hash(). Products, customers, carts
-   and orders are all created through the app itself.
+   Password is 123456. The seed stores it as a legacy SHA256
+   (Base64) hash; on the first successful login the API verifies
+   it and transparently re-hashes it to BCrypt (see PasswordHelper
+   + AuthController.Login). New accounts use BCrypt from the start.
+   Products, customers, carts and orders are created via the app.
    ============================================================ */
 IF NOT EXISTS (SELECT 1 FROM Users WHERE Role = 'Admin')
 BEGIN

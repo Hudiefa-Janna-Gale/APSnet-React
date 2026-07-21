@@ -2,22 +2,20 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// Handles Users: list, get one, update and delete.
-// (Register and Login moved to AuthController => api/auth)
-// Every database operation uses ADO.NET (SqlConnection + SqlCommand).
-[Authorize(Roles = "Admin")]  // AUTHORIZATION: only Admins can manage users
+[Authorize(Roles = "Admin")]
 [ApiController]
-[Route("api/[controller]")]   // => api/users
+[Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
     private readonly string _connectionString;
+    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IConfiguration configuration)
+    public UsersController(IConfiguration configuration, ILogger<UsersController> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        _logger = logger;
     }
 
-    // GET: api/users  -> all users (we never return the password)
     [HttpGet]
     public IActionResult GetAllUsers()
     {
@@ -49,7 +47,6 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    // GET: api/users/5  -> one user by id
     [HttpGet("{id}")]
     public IActionResult GetUserById(int id)
     {
@@ -80,11 +77,10 @@ public class UsersController : ControllerBase
         return NotFound(new { message = "User not found." });
     }
 
-    // PUT: api/users/5  -> update a user's name / email / role
     [HttpPut("{id}")]
     public IActionResult UpdateUser(int id, User user)
     {
-        // --- Server side validation ---
+
         if (string.IsNullOrWhiteSpace(user.FullName))
             return BadRequest(new { message = "Full name is required." });
 
@@ -95,7 +91,6 @@ public class UsersController : ControllerBase
         {
             connection.Open();
 
-            // Duplicate check: another user with the same email?
             var checkCommand = new SqlCommand(
                 "SELECT COUNT(*) FROM Users WHERE Email = @Email AND UserID <> @UserID", connection);
             checkCommand.Parameters.AddWithValue("@Email", user.Email);
@@ -124,7 +119,6 @@ public class UsersController : ControllerBase
         return Ok(new { message = "User updated successfully." });
     }
 
-    // DELETE: api/users/5  -> delete a user
     [HttpDelete("{id}")]
     public IActionResult DeleteUser(int id)
     {
@@ -132,7 +126,20 @@ public class UsersController : ControllerBase
         {
             connection.Open();
 
-            // First empty this user's shopping cart (foreign key)
+            var roleCommand = new SqlCommand(
+                "SELECT Role FROM Users WHERE UserID = @UserID", connection);
+            roleCommand.Parameters.AddWithValue("@UserID", id);
+            var role = roleCommand.ExecuteScalar() as string;
+
+            if (role is null)
+                return NotFound(new { message = "User not found." });
+
+            if (role == "Admin")
+            {
+                _logger.LogWarning("Blocked attempt to delete admin user {UserID}", id);
+                return BadRequest(new { message = "Admin accounts cannot be deleted." });
+            }
+
             var deleteCartCommand = new SqlCommand(
                 "DELETE FROM Cart WHERE UserID = @UserID", connection);
             deleteCartCommand.Parameters.AddWithValue("@UserID", id);
@@ -149,9 +156,10 @@ public class UsersController : ControllerBase
                 if (rowsAffected == 0)
                     return NotFound(new { message = "User not found." });
             }
-            catch (SqlException)
+            catch (SqlException ex)
             {
-                // The user still has orders, so we cannot delete them
+
+                _logger.LogWarning(ex, "Delete blocked for user {UserID} (referenced by existing orders)", id);
                 return BadRequest(new { message = "This user cannot be deleted because they have existing orders." });
             }
         }

@@ -1,38 +1,31 @@
-using CloudinaryDotNet;
+using BackEnd.Services;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-
 [ApiController]
-[Route("api/[controller]")]   // => api/upload
+[Route("api/[controller]")]
 public class UploadController : ControllerBase
 {
-    private readonly Cloudinary _cloudinary;
+    private readonly CloudinaryService _cloudinary;
+    private readonly ILogger<UploadController> _logger;
 
-    // Only these types are accepted; everything else is rejected.
     private static readonly string[] AllowedTypes =
         { "image/jpeg", "image/png", "image/webp", "image/gif" };
 
-    private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
+    private const long MaxFileSizeBytes = 5 * 1024 * 1024;
 
-    public UploadController(IConfiguration configuration)
+    public UploadController(CloudinaryService cloudinary, ILogger<UploadController> logger)
     {
-        // Credentials live in appsettings.json under "Cloudinary"
-        var account = new Account(
-            configuration["Cloudinary:CloudName"],
-            configuration["Cloudinary:ApiKey"],
-            configuration["Cloudinary:ApiSecret"]);
-
-        _cloudinary = new Cloudinary(account) { Api = { Secure = true } };
+        _cloudinary = cloudinary;
+        _logger = logger;
     }
 
-    // POST: api/upload  -> multipart/form-data with one "file" field (Admin only)
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> UploadImage(IFormFile file)
     {
-        // --- Server side validation ---
+
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Please choose an image file." });
 
@@ -42,20 +35,13 @@ public class UploadController : ControllerBase
         if (file.Length > MaxFileSizeBytes)
             return BadRequest(new { message = "Image is too large (max 5 MB)." });
 
-        using var stream = file.OpenReadStream();
-
-        var uploadParams = new ImageUploadParams
-        {
-            File = new FileDescription(file.FileName, stream),
-            Folder = "shophub/products",
-            // Shrink very large photos on Cloudinary's side to keep the shop fast
-            Transformation = new Transformation().Width(1200).Height(1200).Crop("limit")
-        };
-
-        ImageUploadResult result = await _cloudinary.UploadAsync(uploadParams);
+        ImageUploadResult result = await _cloudinary.UploadAsync(file);
 
         if (result.Error != null)
-            return StatusCode(502, new { message = "Cloudinary upload failed: " + result.Error.Message });
+        {
+            _logger.LogError("Cloudinary upload failed: {Error}", result.Error.Message);
+            return StatusCode(502, new { message = "Cloudinary upload failed. Please try again." });
+        }
 
         return Ok(new
         {

@@ -1,4 +1,3 @@
-// Represents one row of the Products table
 public class Product
 {
     public int ProductID { get; set; }

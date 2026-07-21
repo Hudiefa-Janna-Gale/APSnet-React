@@ -15,7 +15,6 @@ import { useCart } from "../context/CartContext";
 function Navbar() {
   const navigate = useNavigate();
 
-  // GLOBAL STATE: props looma baahna — context ayaa laga soo akhriyaa
   const { user, isAdmin, logout } = useAuth();
   const { cartCount } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -32,7 +31,6 @@ function Navbar() {
     { to: "/contact", label: "Contact" },
   ];
 
-  // NavLink wuxuu na siiyaa isActive si link-ka hadda furan u iftiimo
   const linkClass = ({ isActive }) =>
     `px-4 py-2 rounded-full text-sm font-semibold transition ${
       isActive
@@ -43,7 +41,7 @@ function Navbar() {
   return (
     <nav className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-white/5 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        {/* Logo */}
+
         <div
           className="flex items-center gap-2 cursor-pointer shrink-0"
           onClick={() => navigate("/")}
@@ -56,7 +54,6 @@ function Navbar() {
           </h1>
         </div>
 
-        {/* Desktop navigation */}
         <ul className="hidden md:flex items-center gap-1">
           {links.map((l) => (
             <li key={l.to}>
@@ -66,7 +63,14 @@ function Navbar() {
             </li>
           ))}
 
-          {/* AUTHORIZATION: link-kan waxaa arka ADMIN kaliya */}
+          {user && (
+            <li>
+              <NavLink to="/orders" className={linkClass}>
+                My Orders
+              </NavLink>
+            </li>
+          )}
+
           {isAdmin && (
             <li>
               <NavLink
@@ -79,9 +83,8 @@ function Navbar() {
           )}
         </ul>
 
-        {/* Right side: cart + user */}
         <div className="flex items-center gap-3">
-          {/* Cart */}
+
           <button
             onClick={() => navigate("/cart")}
             className="relative p-2.5 rounded-full hover:bg-white/10 transition"
@@ -95,7 +98,6 @@ function Navbar() {
             )}
           </button>
 
-          {/* Haddii user-ku soo galay: magaciisa + Logout. Haddii kale: Login */}
           {user ? (
             <div className="hidden sm:flex items-center gap-2 bg-white/5 rounded-full pl-3 pr-1.5 py-1.5">
               <FaUserCircle className="text-blue-400 text-lg" />
@@ -119,7 +121,6 @@ function Navbar() {
             </button>
           )}
 
-          {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2.5 rounded-full hover:bg-white/10 transition"
@@ -129,7 +130,6 @@ function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-white/5 px-4 py-4 space-y-1 bg-slate-900">
           {links.map((l) => (
@@ -147,6 +147,15 @@ function Navbar() {
               {l.label}
             </NavLink>
           ))}
+          {user && (
+            <NavLink
+              to="/orders"
+              onClick={() => setMobileOpen(false)}
+              className="block px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/5"
+            >
+              My Orders
+            </NavLink>
+          )}
           {isAdmin && (
             <NavLink
               to="/dashboard"

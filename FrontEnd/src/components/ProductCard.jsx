@@ -1,14 +1,13 @@
 import { FaShoppingCart, FaImage } from "react-icons/fa";
 
-// Waxaa loo dhiibaa product dhab ah oo ka yimid API-ga
 function ProductCard({ product, onAddToCart }) {
   const inStock = product.stockQuantity > 0;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full">
-      {/* Image */}
+
       <div className="relative bg-gray-50 h-52 flex items-center justify-center overflow-hidden">
-        {/* Badge: category-ga alaabta */}
+
         <span className="absolute top-3 left-3 z-10 bg-blue-600 text-white text-[11px] font-bold px-3 py-1 rounded-full">
           {product.category || "New"}
         </span>
@@ -24,7 +23,6 @@ function ProductCard({ product, onAddToCart }) {
         )}
       </div>
 
-      {/* Content */}
       <div className="p-5 flex flex-col flex-1">
         <h2 className="font-bold text-slate-800 line-clamp-1 group-hover:text-blue-600 transition-colors">
           {product.name}
@@ -49,7 +47,6 @@ function ProductCard({ product, onAddToCart }) {
           </span>
         </div>
 
-        {/* Add To Cart */}
         <button
           onClick={() => onAddToCart(product)}
           disabled={!inStock}

@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import CategoryCard from "./CategoryCard";
 import api from "../api";
 
-// Qaybaha (categories) kama imanayaan qoraal go'an (mock) —
-// waxaa laga soo saaraa alaabta DHABTA AH ee dukaanka ku jirta.
 function Categories() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
@@ -13,7 +11,7 @@ function Categories() {
     api
       .get("/products")
       .then((res) => {
-        // U kala saar alaabta category ahaan: magac + tiro + sawirka 1aad
+
         const grouped = {};
         for (const p of res.data) {
           const name = p.category || "Other";
@@ -23,10 +21,12 @@ function Categories() {
         }
         setCategories(Object.values(grouped).slice(0, 4));
       })
-      .catch(() => setCategories([]));
+      .catch((err) => {
+        console.error("Failed to load categories:", err);
+        setCategories([]);
+      });
   }, []);
 
-  // Dukaan cusub oo alaab la'aan: qaybtan waa la qariyaa
   if (categories.length === 0) return null;
 
   return (

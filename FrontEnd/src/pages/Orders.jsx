@@ -3,8 +3,6 @@ import { FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import api from "../api";
 import toast from "react-hot-toast";
 
-// Bogga dalabaadka: liiska orders-ka dhabta ah ee API-ga,
-// beddelka status-ka iyo tirtiridda.
 const statusStyles = {
   Completed: "bg-green-100 text-green-600",
   Pending: "bg-amber-100 text-amber-600",
@@ -32,7 +30,6 @@ function Orders() {
     loadOrders();
   }, [loadOrders]);
 
-  // Muuji / qari alaabta dalabka (GET /api/orders/{id})
   const toggleItems = async (orderId) => {
     if (expandedId === orderId) {
       setExpandedId(null);
@@ -47,7 +44,6 @@ function Orders() {
     }
   };
 
-  // PUT /api/orders/{id}/status
   const updateStatus = async (orderId, status) => {
     try {
       const res = await api.put(`/orders/${orderId}/status`, { status });
@@ -58,7 +54,6 @@ function Orders() {
     }
   };
 
-  // DELETE /api/orders/{id}
   const deleteOrder = async (orderId) => {
     if (!window.confirm(`Delete order #${orderId}?`)) return;
     try {
@@ -71,7 +66,7 @@ function Orders() {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen flex-1">
+    <div className="p-4 sm:p-8 bg-slate-50 min-h-screen flex-1">
       <h1 className="text-3xl font-bold text-slate-800 mb-6">Orders List</h1>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border space-y-4">
@@ -82,7 +77,7 @@ function Orders() {
         ) : (
           orders.map((o) => (
             <div key={o.orderID} className="border-b pb-4 last:border-0">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                 <div>
                   <h3 className="font-bold text-slate-800">
                     #{o.orderID} - {o.customerName}
@@ -96,12 +91,11 @@ function Orders() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap">
                   <p className="font-bold text-slate-800">
                     ${Number(o.totalAmount).toFixed(2)}
                   </p>
 
-                  {/* Status dropdown: PUT /api/orders/{id}/status */}
                   <select
                     value={o.status}
                     onChange={(e) => updateStatus(o.orderID, e.target.value)}
@@ -132,7 +126,6 @@ function Orders() {
                 </div>
               </div>
 
-              {/* Alaabta dalabka (expandable) */}
               {expandedId === o.orderID && (
                 <div className="mt-4 bg-slate-50 rounded-xl p-4 space-y-2">
                   {expandedItems.map((item) => (

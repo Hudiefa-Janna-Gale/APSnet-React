@@ -2,25 +2,22 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 
-// Handles the shopping cart: view a user's cart, add a product,
-// change the quantity, remove one item, or clear the whole cart.
-// Every database operation uses ADO.NET (SqlConnection + SqlCommand).
-[Authorize]                   // AUTHORIZATION: you must be logged in to use the cart
+[Authorize]
 [ApiController]
-[Route("api/[controller]")]   // => api/cart
-public class CartController : ControllerBase
+[Route("api/[controller]")]
+public class CartController : SecureController
 {
     private readonly string _connectionString;
+    private readonly ILogger<CartController> _logger;
 
-    public CartController(IConfiguration configuration)
+    public CartController(IConfiguration configuration, ILogger<CartController> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        _logger = logger;
     }
 
-    // GET: api/cart/user/2  -> all cart items of one user
-    // We JOIN with Products so the front-end also gets name, price and image.
-    [HttpGet("user/{userId}")]
-    public IActionResult GetCartByUser(int userId)
+    [HttpGet]
+    public IActionResult GetMyCart()
     {
         var cartItems = new List<Cart>();
 
@@ -33,7 +30,7 @@ public class CartController : ControllerBase
                   INNER JOIN Products p ON c.ProductID = p.ProductID
                   WHERE c.UserID = @UserID
                   ORDER BY c.AddedAt DESC", connection);
-            command.Parameters.AddWithValue("@UserID", userId);
+            command.Parameters.AddWithValue("@UserID", CurrentUserId);
 
             connection.Open();
 
@@ -60,48 +57,58 @@ public class CartController : ControllerBase
         return Ok(cartItems);
     }
 
-    // POST: api/cart  -> add a product to a user's cart
-    // If the product is already in the cart we just increase the quantity.
     [HttpPost]
     public IActionResult AddToCart(Cart item)
     {
-        // --- Server side validation ---
-        if (item.UserID <= 0 || item.ProductID <= 0)
-            return BadRequest(new { message = "UserID and ProductID are required." });
+
+        int userId = CurrentUserId;
+
+        if (item.ProductID <= 0)
+            return BadRequest(new { message = "ProductID is required." });
 
         if (item.Quantity <= 0)
-            item.Quantity = 1;   // default quantity
+            item.Quantity = 1;
 
         using (var connection = new SqlConnection(_connectionString))
         {
             connection.Open();
 
-            // Is this product already in the user's cart?
+            var productExistsCommand = new SqlCommand(
+                "SELECT COUNT(*) FROM Products WHERE ProductID = @ProductID", connection);
+            productExistsCommand.Parameters.AddWithValue("@ProductID", item.ProductID);
+
+            if ((int)productExistsCommand.ExecuteScalar() == 0)
+            {
+                _logger.LogWarning("AddToCart rejected: product {ProductID} does not exist (user {UserID})",
+                    item.ProductID, userId);
+                return NotFound(new { message = "Product not found." });
+            }
+
             var checkCommand = new SqlCommand(
                 "SELECT COUNT(*) FROM Cart WHERE UserID = @UserID AND ProductID = @ProductID", connection);
-            checkCommand.Parameters.AddWithValue("@UserID", item.UserID);
+            checkCommand.Parameters.AddWithValue("@UserID", userId);
             checkCommand.Parameters.AddWithValue("@ProductID", item.ProductID);
 
             int existing = (int)checkCommand.ExecuteScalar();
 
             if (existing > 0)
             {
-                // Already in the cart -> increase the quantity
+
                 var updateCommand = new SqlCommand(
                     @"UPDATE Cart SET Quantity = Quantity + @Quantity
                       WHERE UserID = @UserID AND ProductID = @ProductID", connection);
                 updateCommand.Parameters.AddWithValue("@Quantity", item.Quantity);
-                updateCommand.Parameters.AddWithValue("@UserID", item.UserID);
+                updateCommand.Parameters.AddWithValue("@UserID", userId);
                 updateCommand.Parameters.AddWithValue("@ProductID", item.ProductID);
                 updateCommand.ExecuteNonQuery();
             }
             else
             {
-                // Not in the cart yet -> insert a new row
+
                 var insertCommand = new SqlCommand(
                     @"INSERT INTO Cart (UserID, ProductID, Quantity)
                       VALUES (@UserID, @ProductID, @Quantity)", connection);
-                insertCommand.Parameters.AddWithValue("@UserID", item.UserID);
+                insertCommand.Parameters.AddWithValue("@UserID", userId);
                 insertCommand.Parameters.AddWithValue("@ProductID", item.ProductID);
                 insertCommand.Parameters.AddWithValue("@Quantity", item.Quantity);
                 insertCommand.ExecuteNonQuery();
@@ -111,20 +118,21 @@ public class CartController : ControllerBase
         return Ok(new { message = "Product added to cart." });
     }
 
-    // PUT: api/cart/7  -> change the quantity of one cart item
     [HttpPut("{cartId}")]
     public IActionResult UpdateQuantity(int cartId, Cart item)
     {
-        // --- Server side validation ---
+
         if (item.Quantity <= 0)
             return BadRequest(new { message = "Quantity must be at least 1." });
 
         using (var connection = new SqlConnection(_connectionString))
         {
+
             var command = new SqlCommand(
-                "UPDATE Cart SET Quantity = @Quantity WHERE CartID = @CartID", connection);
+                "UPDATE Cart SET Quantity = @Quantity WHERE CartID = @CartID AND UserID = @UserID", connection);
             command.Parameters.AddWithValue("@Quantity", item.Quantity);
             command.Parameters.AddWithValue("@CartID", cartId);
+            command.Parameters.AddWithValue("@UserID", CurrentUserId);
 
             connection.Open();
             int rowsAffected = command.ExecuteNonQuery();
@@ -136,15 +144,16 @@ public class CartController : ControllerBase
         return Ok(new { message = "Quantity updated." });
     }
 
-    // DELETE: api/cart/7  -> remove one item from the cart
     [HttpDelete("{cartId}")]
     public IActionResult RemoveFromCart(int cartId)
     {
         using (var connection = new SqlConnection(_connectionString))
         {
+
             var command = new SqlCommand(
-                "DELETE FROM Cart WHERE CartID = @CartID", connection);
+                "DELETE FROM Cart WHERE CartID = @CartID AND UserID = @UserID", connection);
             command.Parameters.AddWithValue("@CartID", cartId);
+            command.Parameters.AddWithValue("@UserID", CurrentUserId);
 
             connection.Open();
             int rowsAffected = command.ExecuteNonQuery();
@@ -156,15 +165,14 @@ public class CartController : ControllerBase
         return Ok(new { message = "Item removed from cart." });
     }
 
-    // DELETE: api/cart/user/2  -> empty the whole cart of one user
-    [HttpDelete("user/{userId}")]
-    public IActionResult ClearCart(int userId)
+    [HttpDelete]
+    public IActionResult ClearMyCart()
     {
         using (var connection = new SqlConnection(_connectionString))
         {
             var command = new SqlCommand(
                 "DELETE FROM Cart WHERE UserID = @UserID", connection);
-            command.Parameters.AddWithValue("@UserID", userId);
+            command.Parameters.AddWithValue("@UserID", CurrentUserId);
 
             connection.Open();
             command.ExecuteNonQuery();
